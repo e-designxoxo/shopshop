@@ -1,0 +1,31 @@
+"use strict";
+const KEY = "shopping-mission-v2";
+const starter = [
+  {id:"tissues",name:"Tissues",price:1.10,selected:true},
+  {id:"carrots",name:"Carrots (500 g)",price:0.85,selected:true},
+  {id:"sugar",name:"White sugar (1 kg)",price:1.35,selected:true},
+  {id:"brown",name:"Brown sugar (500 g)",price:1.65,selected:false},
+  {id:"eggs",name:"Eggs (6)",price:1.75,selected:false},
+  {id:"cream",name:"Crème fraîche",price:1.10,selected:false},
+  {id:"butter",name:"Butter (250 g)",price:2.35,selected:false},
+  {id:"flour",name:"Flour (1 kg)",price:0.85,selected:false}
+];
+const money = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(n);
+const clampMoney = n => Number.isFinite(n) ? Math.max(0,Math.min(n,1000000)) : 0;
+const validItem = v => v && typeof v.id === "string" && typeof v.name === "string" && v.name.trim().length > 0 && v.name.length <= 70 && typeof v.price === "number" && Number.isFinite(v.price) && v.price >= 0 && v.price <= 1000000 && typeof v.selected === "boolean";
+function load(){try{const data=JSON.parse(localStorage.getItem(KEY));if(data && Array.isArray(data.items) && data.items.length<=500 && data.items.every(validItem) && typeof data.budget==="number" && typeof data.target==="number" && Number.isFinite(data.budget) && Number.isFinite(data.target)) return {items:data.items,budget:clampMoney(data.budget),target:clampMoney(data.target)}}catch{}return {items:starter.map(v=>({...v})),budget:10,target:5}}
+let state=load();
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify("Storage unavailable; export a backup.")}}
+function notify(message){$("toast").textContent=message}
+function totals(){const total=state.items.reduce((acc,it)=>acc+(it.selected?it.price:0),0);const remaining=state.budget-total;$("total").textContent=money(total);$("remaining").textContent=remaining>=0?`${money(remaining)} left`:`${money(-remaining)} over`;$("remaining").className=remaining>=0?"good":"bad";const status=total>state.budget?"Over budget — remove items":total>state.target?"Within maximum, above target":"Within ideal target";$("status").textContent=status;$("status").className=remaining<0?"bad":"good";const pct=state.budget>0?Math.min(100,total/state.budget*100):(total>0?100:0);$("progress-fill").style.width=`${pct}%`;$("progress-fill").classList.toggle("over",remaining<0);$("progress-fill").parentElement.setAttribute("aria-valuenow",String(Math.round(pct)));$("item-count").textContent=`${state.items.filter(v=>v.selected).length} of ${state.items.length} selected`;save()}
+function render(){const root=$("items");root.replaceChildren();state.items.forEach(it=>{const li=document.createElement("li");li.className="item";const label=document.createElement("label");label.className="item-check";const check=document.createElement("input");check.type="checkbox";check.checked=it.selected;check.addEventListener("change",()=>{it.selected=check.checked;totals()});const name=document.createElement("span");name.className="item-name";name.textContent=it.name;label.append(check,name);const price=document.createElement("input");price.className="price-input";price.type="number";price.min="0";price.max="1000000";price.step="0.01";price.inputMode="decimal";price.value=it.price.toFixed(2);price.setAttribute("aria-label",`Price for ${it.name} in euros`);price.addEventListener("change",()=>{it.price=clampMoney(Number(price.value));price.value=it.price.toFixed(2);totals()});const remove=document.createElement("button");remove.type="button";remove.className="remove";remove.textContent="×";remove.setAttribute("aria-label",`Remove ${it.name}`);remove.addEventListener("click",()=>{state.items=state.items.filter(x=>x.id!==it.id);render()});li.append(label,price,remove);root.append(li)});$("budget").value=state.budget;$("target").value=state.target;totals()}
+$("budget").addEventListener("change",e=>{state.budget=clampMoney(Number(e.target.value));e.target.value=state.budget;totals()});
+$("target").addEventListener("change",e=>{state.target=clampMoney(Number(e.target.value));e.target.value=state.target;totals()});
+$("add-form").addEventListener("submit",e=>{e.preventDefault();const name=$("new-name").value.trim();const raw=$("new-price").value;if(!name||raw===""||state.items.length>=500){notify("Enter an item and price (maximum 500 items).");return}state.items.push({id:crypto.randomUUID?.()||`item-${Date.now()}-${state.items.length}`,name:name.slice(0,70),price:clampMoney(Number(raw)),selected:true});$("new-name").value="";$("new-price").value="";notify("");render();$("new-name").focus()});
+$("clear-checked").addEventListener("click",()=>{state.items.forEach(x=>x.selected=false);render()});
+$("copy-list").addEventListener("click",async()=>{const lines=state.items.filter(x=>x.selected).map(x=>`${x.name} — ${money(x.price)}`);const sum=state.items.reduce((a,x)=>a+(x.selected?x.price:0),0);const copy=`Shopping Mission\n${lines.join("\n")}\nTOTAL: ${money(sum)} / ${money(state.budget)}`;try{await navigator.clipboard.writeText(copy);notify("Shopping list copied.")}catch{notify("Copy unavailable here. Use Export backup instead.")}});
+$("export-list").addEventListener("click",()=>{const blob=new Blob([JSON.stringify({version:2,...state},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="shopping-mission-backup.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup exported.")});
+$("import-list").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>100000)throw Error("File too large");const data=JSON.parse(await file.text());if(!data||!Array.isArray(data.items)||data.items.length>500||!data.items.every(validItem)||!Number.isFinite(data.budget)||!Number.isFinite(data.target))throw Error("Invalid backup");state={items:data.items.map(x=>({...x})),budget:clampMoney(data.budget),target:clampMoney(data.target)};render();notify("Backup imported successfully.")}catch{notify("Import failed: unsupported or invalid backup.")}finally{e.target.value=""}});
+render();
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
