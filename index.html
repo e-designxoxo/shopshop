@@ -1,0 +1,184 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#245e4a" />
+  <meta name="description" content="An offline-first grocery planner that keeps your shopping basket within budget." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Shopping Mission" />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./styles.css" />
+
+  <title>Shopping Mission</title>
+  <script src="./app.js" defer></script>
+</head>
+
+<body>
+  <main class="shell">
+    <header class="header">
+      <div class="eyebrow">BUDGET CONTROL / FIELD TOOL</div>
+
+      <div class="heading">
+        <div>
+          <h1>Shopping Mission</h1>
+          <p>Buy what matters. Know your total.</p>
+        </div>
+
+        <div class="mark" aria-hidden="true">SM</div>
+      </div>
+    </header>
+
+    <section class="panel controls" aria-label="Budget settings">
+      <div class="control-group">
+        <label for="budget">Budget ceiling (€)</label>
+        <input
+          id="budget"
+          inputmode="decimal"
+          type="number"
+          min="0"
+          step="0.01"
+          value="10"
+        />
+      </div>
+
+      <div class="control-group">
+        <label for="target">Ideal target (€)</label>
+        <input
+          id="target"
+          inputmode="decimal"
+          type="number"
+          min="0"
+          step="0.01"
+          value="5"
+        />
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="list-title">
+      <div class="section-header">
+        <div>
+          <h2 id="list-title">Shopping list</h2>
+          <p id="item-count" class="muted">0 items selected</p>
+        </div>
+
+        <button
+          class="quiet"
+          id="clear-checked"
+          type="button"
+        >
+          Uncheck all
+        </button>
+      </div>
+
+      <ul id="items" class="items"></ul>
+
+      <form id="add-form" class="add-form">
+        <label class="sr-only" for="new-name">
+          New item name
+        </label>
+
+        <input
+          id="new-name"
+          maxlength="70"
+          placeholder="Add an item..."
+          required
+        />
+
+        <label class="sr-only" for="new-price">
+          Estimated price in euros
+        </label>
+
+        <input
+          id="new-price"
+          type="number"
+          min="0"
+          step="0.01"
+          inputmode="decimal"
+          placeholder="€"
+          aria-label="Estimated item price"
+          required
+        />
+
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section
+      class="panel summary"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <p class="muted">ESTIMATED BASKET</p>
+
+      <div id="total" class="total">0,00 €</div>
+
+      <div
+        class="progress"
+        role="progressbar"
+        aria-label="Budget used"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <div
+          id="progress-fill"
+          class="progress-fill"
+        ></div>
+      </div>
+
+      <div class="summary-row">
+        <span id="status">Within budget</span>
+        <strong id="remaining">10,00 € left</strong>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button
+        id="copy-list"
+        class="button-secondary"
+        type="button"
+      >
+        Copy list
+      </button>
+
+      <button
+        id="export-list"
+        class="button-secondary"
+        type="button"
+      >
+        Export backup
+      </button>
+
+      <label class="import-button" for="import-list">
+        Import backup
+      </label>
+
+      <input
+        id="import-list"
+        type="file"
+        accept="application/json,.json"
+        hidden
+      />
+    </div>
+
+    <p class="footnote">
+      Saved on this device. Works offline after first
+      successful load. Data does not automatically sync
+      across devices.
+    </p>
+
+    <p
+      id="toast"
+      class="toast"
+      role="status"
+      aria-live="polite"
+    ></p>
+  </main>
+</body>
+</html>
